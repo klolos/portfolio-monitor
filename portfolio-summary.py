@@ -11,6 +11,8 @@ parser = argparse.ArgumentParser(description="Fetch option prices from Google Sh
 parser.add_argument('--output', choices=['csv', 'table'], default='table', help="Output format")
 parser.add_argument('--columns', default="Ticker,Type,Qty,Value", help="Columns to display")
 parser.add_argument('--no-header', action='store_true', help="Do not print column names/headers")
+parser.add_argument('--file', default=None, help="Optional file path to write the output to")
+
 default_creds = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
 parser.add_argument('--creds', default=default_creds, help="Path to Google JSON credentials")
 
@@ -111,18 +113,29 @@ for row in pbar:
     results.append([str(row_dict.get(col, "N/A")) for col in selected_cols])
     time.sleep(0.5)
 
-# --- 5. Output ---
+# --- 5. Output Construction ---
+output_lines = []
+
 if args.output == 'csv':
     if not args.no_header:
-        print(",".join(selected_cols))
+        output_lines.append(",".join(selected_cols))
     for r in results:
-        print(",".join(r))
+        output_lines.append(",".join(r))
 else:
     widths = [max(len(col), 10) for col in selected_cols]
     if not args.no_header:
         header = " | ".join([f"{col:<{widths[i]}}" for i, col in enumerate(selected_cols)])
-        print("\n" + header)
-        print("-" * len(header))
-
+        output_lines.append(header)
+        output_lines.append("-" * len(header))
     for r in results:
-        print(" | ".join([f"{val:<{widths[i]}}" for i, val in enumerate(r)]))
+        output_lines.append(" | ".join([f"{val:<{widths[i]}}" for i, val in enumerate(r)]))
+
+# --- 6. Final Output ---
+final_content = "\n".join(output_lines)
+
+if args.file:
+    with open(args.file, 'w') as f:
+        f.write(final_content)
+    print(f"\nOutput successfully written to {args.file}")
+else:
+    print("\n" + final_content)
