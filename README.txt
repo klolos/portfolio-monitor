@@ -34,6 +34,12 @@ To use a custom path:
 
   python portfolio-summary.py --creds="C:\custom\path\key.json"
 
+--- WINDOWS SHORTCUT ---
+
+To print a summary in a Windows terminal, use a shortcut as follows:
+
+  C:\Windows\System32\cmd.exe /k python "C:\<path-to-script>\portfolio-summary.py" --columns="Value" --no-header
+
 --- TRADE TYPES SUPPORTED ---
 
 - LEAPS / CDS: Long positions (Positive Value)
