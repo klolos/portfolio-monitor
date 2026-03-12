@@ -19,39 +19,31 @@ selected_cols = [c.strip() for c in args.columns.split(',')]
 
 # --- 2. Helpers ---
 def safe_float(value):
-    try:
-        clean_val = str(value).strip().replace(',', '')
-        if not clean_val or clean_val == '-': return 0.0
-        return float(clean_val)
-    except (ValueError, TypeError): return 0.0
+    clean_val = str(value).strip().replace(',', '')
+    if not clean_val or clean_val == '-': return 0.0
+    return float(clean_val)
 
 def convert_date(serial_date):
     if not serial_date: return None
-    try:
-        dt = datetime(1899, 12, 30) + timedelta(days=float(serial_date))
-        return dt.strftime('%Y-%m-%d')
-    except: return None
+    dt = datetime(1899, 12, 30) + timedelta(days=float(serial_date))
+    return dt.strftime('%Y-%m-%d')
 
 def get_option_mid_price(ticker_obj, expiry, strike, option_type):
-    try:
-        chain = ticker_obj.option_chain(expiry)
-        data = chain.puts if option_type == 'P' else chain.calls
-        row = data[data['strike'] == float(strike)]
-        if not row.empty:
-            bid, ask = row.iloc[0]['bid'], row.iloc[0]['ask']
-            return (bid + ask) / 2 if (bid or ask) else row.iloc[0]['lastPrice']
-    except: pass
-    return 0.0
+    chain = ticker_obj.option_chain(expiry)
+    data = chain.puts if option_type == 'P' else chain.calls
+    row = data[data['strike'] == float(strike)]
+    if row.empty:
+        # FIXME
+        #raise ValueError("Failed to get option mid price: %s" % ticker_obj)
+        return 0.0
+
+    bid, ask = row.iloc[0]['bid'], row.iloc[0]['ask']
+    return (bid + ask) / 2 if (bid or ask) else row.iloc[0]['lastPrice']
 
 # --- 3. Setup ---
-try:
-    gc = gspread.service_account(filename=args.creds)
-    sh = gc.open("Money")
-    worksheet = sh.worksheet("Trades")
-except Exception as e:
-    print(f"Error connecting to Google Sheets: {e}")
-    input("Press Enter to exit...")
-    exit()
+gc = gspread.service_account(filename=args.creds)
+sh = gc.open("Money")
+worksheet = sh.worksheet("Trades")
 
 all_rows = worksheet.get_all_values(value_render_option='UNFORMATTED_VALUE')
 active_trades = [row for row in all_rows[1:] if len(row) >= 17 and str(row[1]).strip() == '*']
@@ -74,38 +66,38 @@ for row in pbar:
     tk = yf.Ticker(ticker_sym)
     price_per_share = 0.0
 
-    try:
-        if not expiry: raise ValueError("Invalid Expiry")
+    if not expiry: raise ValueError("Invalid Expiry")
 
-        if trade_type == "LEAPS":
-            price_per_share = get_option_mid_price(tk, expiry, call_strike, 'C')
-        elif trade_type in ["CC", "S CALL"]:
-            price_per_share = -get_option_mid_price(tk, expiry, call_strike, 'C')
-        elif trade_type == "CSP":
-            price_per_share = -get_option_mid_price(tk, expiry, put_strike, 'P')
-        elif trade_type == "S STRG":
-            p = get_option_mid_price(tk, expiry, put_strike, 'P')
-            c = get_option_mid_price(tk, expiry, call_strike, 'C')
-            price_per_share = -(p + c)
-        elif trade_type == "PCS":
-            mid = get_option_mid_price(tk, expiry, put_strike, 'P') - \
-                  get_option_mid_price(tk, expiry, put_strike - spread, 'P')
-            price_per_share = -mid
-        elif trade_type == "CCS":
-            mid = get_option_mid_price(tk, expiry, call_strike, 'C') - \
-                  get_option_mid_price(tk, expiry, call_strike + spread, 'C')
-            price_per_share = -mid
-        elif trade_type == "CDS":
-            mid = get_option_mid_price(tk, expiry, call_strike, 'C') - \
-                  get_option_mid_price(tk, expiry, call_strike + spread, 'C')
-            price_per_share = mid
-        elif trade_type == "IC":
-            p_spread = get_option_mid_price(tk, expiry, put_strike, 'P') - \
-                       get_option_mid_price(tk, expiry, put_strike - spread, 'P')
-            c_spread = get_option_mid_price(tk, expiry, call_strike, 'C') - \
-                       get_option_mid_price(tk, expiry, call_strike + spread, 'C')
-            price_per_share = -(p_spread + c_spread)
-    except: pass
+    if trade_type == "LEAPS":
+        price_per_share = get_option_mid_price(tk, expiry, call_strike, 'C')
+    elif trade_type in ["CC", "S CALL"]:
+        price_per_share = -get_option_mid_price(tk, expiry, call_strike, 'C')
+    elif trade_type == "CSP":
+        price_per_share = -get_option_mid_price(tk, expiry, put_strike, 'P')
+    elif trade_type == "S STRG":
+        p = get_option_mid_price(tk, expiry, put_strike, 'P')
+        c = get_option_mid_price(tk, expiry, call_strike, 'C')
+        price_per_share = -(p + c)
+    elif trade_type == "PCS":
+        mid = get_option_mid_price(tk, expiry, put_strike, 'P') - \
+              get_option_mid_price(tk, expiry, put_strike - spread, 'P')
+        price_per_share = -mid
+    elif trade_type == "CCS":
+        mid = get_option_mid_price(tk, expiry, call_strike, 'C') - \
+              get_option_mid_price(tk, expiry, call_strike + spread, 'C')
+        price_per_share = -mid
+    elif trade_type == "CDS":
+        mid = get_option_mid_price(tk, expiry, call_strike, 'C') - \
+              get_option_mid_price(tk, expiry, call_strike + spread, 'C')
+        price_per_share = mid
+    elif trade_type == "IC":
+        p_spread = get_option_mid_price(tk, expiry, put_strike, 'P') - \
+                   get_option_mid_price(tk, expiry, put_strike - spread, 'P')
+        c_spread = get_option_mid_price(tk, expiry, call_strike, 'C') - \
+                   get_option_mid_price(tk, expiry, call_strike + spread, 'C')
+        price_per_share = -(p_spread + c_spread)
+    else:
+        raise ValueError("Unknown trade type: %s" % trade_type)
 
     total_value = price_per_share * 100 * contracts
 
