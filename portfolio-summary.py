@@ -35,8 +35,8 @@ def get_option_mid_price(ticker_obj, expiry, strike, option_type):
     data = chain.puts if option_type == 'P' else chain.calls
     row = data[data['strike'] == float(strike)]
     if row.empty:
-        # FIXME
-        #raise ValueError("Failed to get option mid price: %s" % ticker_obj)
+        print("\nFailed to get option mid price: %s %s %s %s"
+              % (ticker_obj.ticker, option_type, strike, expiry))
         return 0.0
 
     bid, ask = row.iloc[0]['bid'], row.iloc[0]['ask']
