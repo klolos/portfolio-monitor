@@ -74,7 +74,7 @@ for row in pbar:
         price_per_share = get_option_mid_price(tk, expiry, call_strike, 'C')
     elif trade_type in ["CC", "S CALL"]:
         price_per_share = -get_option_mid_price(tk, expiry, call_strike, 'C')
-    elif trade_type == "CSP":
+    elif trade_type in ["CSP", "S PUT"]:
         price_per_share = -get_option_mid_price(tk, expiry, put_strike, 'P')
     elif trade_type == "S STRG":
         p = get_option_mid_price(tk, expiry, put_strike, 'P')
