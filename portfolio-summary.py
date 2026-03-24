@@ -60,8 +60,9 @@ for row in pbar:
     ticker_sym  = str(row[9]).strip()
     trade_type  = str(row[13]).strip()
     put_strike  = safe_float(row[14])
-    call_strike = safe_float(row[15])
-    spread      = safe_float(row[16])
+    put_spread  = safe_float(row[15])
+    call_strike = safe_float(row[16])
+    call_spread = safe_float(row[17])
 
     pbar.set_description(f"Processing {ticker_sym}")
 
@@ -82,21 +83,21 @@ for row in pbar:
         price_per_share = -(p + c)
     elif trade_type == "PCS":
         mid = get_option_mid_price(tk, expiry, put_strike, 'P') - \
-              get_option_mid_price(tk, expiry, put_strike - spread, 'P')
+              get_option_mid_price(tk, expiry, put_strike - put_spread, 'P')
         price_per_share = -mid
     elif trade_type == "CCS":
         mid = get_option_mid_price(tk, expiry, call_strike, 'C') - \
-              get_option_mid_price(tk, expiry, call_strike + spread, 'C')
+              get_option_mid_price(tk, expiry, call_strike + call_spread, 'C')
         price_per_share = -mid
     elif trade_type == "CDS":
         mid = get_option_mid_price(tk, expiry, call_strike, 'C') - \
-              get_option_mid_price(tk, expiry, call_strike + spread, 'C')
+              get_option_mid_price(tk, expiry, call_strike + call_spread, 'C')
         price_per_share = mid
     elif trade_type == "IC":
         p_spread = get_option_mid_price(tk, expiry, put_strike, 'P') - \
-                   get_option_mid_price(tk, expiry, put_strike - spread, 'P')
+                   get_option_mid_price(tk, expiry, put_strike - put_spread, 'P')
         c_spread = get_option_mid_price(tk, expiry, call_strike, 'C') - \
-                   get_option_mid_price(tk, expiry, call_strike + spread, 'C')
+                   get_option_mid_price(tk, expiry, call_strike + call_spread, 'C')
         price_per_share = -(p_spread + c_spread)
     else:
         raise ValueError("Unknown trade type: %s" % trade_type)
